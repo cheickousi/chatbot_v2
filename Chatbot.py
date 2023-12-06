@@ -1,8 +1,8 @@
 import streamlit as st
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-tokenizer = AutoTokenizer.from_pretrained("gpt2", local_files_only=True)
-model = AutoModelForCausalLM.from_pretrained("gpt2", pad_token_id=tokenizer.eos_token_id)
+tokenizer = AutoTokenizer.from_pretrained("gpt", local_files_only=True)
+model = AutoModelForCausalLM.from_pretrained("gpt", pad_token_id=tokenizer.eos_token_id)
 
 tokenizer.pad_token_id = tokenizer.eos_token_id
 
