@@ -1,29 +1,35 @@
-from openai import OpenAI
 import streamlit as st
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-with st.sidebar:
-    openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-    "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-    "[View the source code](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)"
-    "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
+tokenizer = AutoTokenizer.from_pretrained("gpt2", local_files_only=True)
+model = AutoModelForCausalLM.from_pretrained("gpt2", pad_token_id=tokenizer.eos_token_id)
+
+tokenizer.pad_token_id = tokenizer.eos_token_id
 
 st.title("💬 Chatbot")
-st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
 if "messages" not in st.session_state:
     st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
 
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
-if prompt := st.chat_input():
-    if not openai_api_key:
-        st.info("Please add your OpenAI API key to continue.")
-        st.stop()
-
-    client = OpenAI(api_key=openai_api_key)
+if prompt := st.chat_input("assistant"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
-    response = client.chat.completions.create(model="gpt-3.5-turbo", messages=st.session_state.messages)
-    msg = response.choices[0].message.content
+    encoded_input = tokenizer(prompt, return_tensors='pt')
+    response = model.generate(**encoded_input,
+                              max_new_tokens=50,
+                              do_sample=True,
+                              top_k=50
+                              # temperature=0.6
+                              )
+
+    # st.text(response)
+    # msg = tokenizer.batch_decode(response, skip_special_tokens=True)[0]
+    msg = tokenizer.decode(response[0], skip_special_tokens=True)
+    # logits = response.logits[0, -1, :]
+    # softmax = tf.math.softmax(logits, axis=-1)
+    # argmax = tf.math.argmax(softmax, axis=-1)
+    # st.text("", "[", tokenizer.decode(argmax), "]")
     st.session_state.messages.append({"role": "assistant", "content": msg})
     st.chat_message("assistant").write(msg)
